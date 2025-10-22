@@ -1,5 +1,9 @@
-# Swiggy Food Order Emails to Google Sheet - N8N Workflow
+# Swiggy Food Order Emails to Google Sheet - N8N Workflows
 Automated workflow to parse Swiggy food delivery order emails and track expenses in Google Sheets using n8n workflow automation with AI-powered email parsing.
+
+## The Google Sheet After Successful Execution
+![Google Sheet Example](https://raw.githubusercontent.com/asispan/Food-Order-to-Google-Sheet-for-Financial-Planning/main/google-sheet-example.png)
+
 
 ## The Workflow Difference
 
@@ -311,6 +315,68 @@ The Clean JSON node contains JavaScript code that handles various edge cases in 
 - Formats data for Google Sheets compatibility
 
 This node is critical for ensuring reliable data flow even when the LLM output is not perfectly formatted.
+
+## Deduplication with Google Apps Script
+
+To prevent duplicate order entries in your Google Sheet, you can set up an automated deduplication script that runs whenever data is added.
+
+### Why Deduplication Matters
+
+The n8n workflow may occasionally process the same email multiple times (e.g., during testing or if the workflow is re-executed). This script ensures that each order ID appears only once in your spreadsheet.
+
+### Setup Instructions
+
+**Step 1: Open Apps Script Editor**
+
+1. Open your Google Sheet
+2. Click **Extensions** > **Apps Script**
+3. Delete any existing code in the editor
+
+**Step 2: Add the Deduplication Script**
+![Google Apps Script Deduplication Setup](https://raw.githubusercontent.com/asispan/Food-Order-to-Google-Sheet-for-Financial-Planning/main/dedup-google-appscript.png)
+
+```
+function removeDuplicateOrderIds() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = sheet.getDataRange().getValues();
+  var seen = {};
+  var rowsToDelete = [];
+
+  // Start from row 2 to skip header
+  for (var i = 1; i < data.length; i++) {
+    var orderId = data[i][1]; // Order Id is in column D (index 3)
+    if (orderId && seen[orderId]) {
+      rowsToDelete.push(i + 1); // Spreadsheet rows are 1-indexed
+    } else if(orderId) {
+      seen[orderId] = true;
+    }
+  }
+
+  // Delete rows from bottom to top to avoid skipping
+  if (rowsToDelete.length) {
+    rowsToDelete.sort(function(a, b) { return b-a });
+    rowsToDelete.forEach(function(row){
+      sheet.deleteRow(row);
+    });
+  }
+}
+```
+
+**Step 3: Add the Trigger**
+Configure the following settings:
+
+- **Choose which function to run:** `removeDuplicateOrderIds`
+- **Choose which deployment should run:** `Head`
+- **Select event source:** `Time-driven`
+- **Select type of time based trigger:** `Day timer`
+- **Select time of day:** Choose your preferred time (e.g., `2am to 3am`, `Midnight to 1am`, etc.)
+
+**Step 4: Save and Authorise**
+1. Click **Save**
+2. If prompted, click **Review permissions**
+3. Select your Google account
+4. Click **Advanced** > **Go to [Your Project Name] (unsafe)**
+5. Click **Allow** to grant necessary permissions
 
 ## Security Best Practices
 
