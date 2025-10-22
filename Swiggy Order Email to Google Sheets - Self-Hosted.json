@@ -1,0 +1,478 @@
+{
+  "name": "Swiggy Order Email to Google Sheets - Self-Hosted",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "20caaa1f-f95d-4ea1-aab7-3edea48e6404",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2240,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1744,
+        -96
+      ],
+      "id": "34ab2490-d9fc-4f27-a6e6-5f113839b5a2",
+      "name": "Get Whole Email",
+      "webhookId": "bd94ba61-b0b0-4a4b-9b5b-651bcadb53e4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OWwmMyMSappHU2eW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 3,
+        "filters": {
+          "q": "from:(noreply@swiggy.in) (subject:order OR subject:Instamart OR subject:gourmet)",
+          "readStatus": "both"
+        }
+      },
+      "id": "9c3da16c-a273-4bd1-8ead-6d8dc0f51e4f",
+      "name": "Gmail - Get MessageIDs",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        -1968,
+        -96
+      ],
+      "webhookId": "bcfadfee-571b-4496-921c-bf9ce7caf9be",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OWwmMyMSappHU2eW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"restaurantName\": \"MTR - Lalbagh Road\",\n    \"date\": \"Saturday, October 11, 2025 12:15 PM\",\n    \"type\": \"Food\",\n    \"orderId\": \"219136361600127\",\n    \"orderTotal\": \"420.00\",\n    \"discount\": \"20.00\",\n    \"packagingCharges\": \"15.00\",\n    \"platformFee\": \"9.99\",\n    \"deliveryFee\": \"0.00\",\n    \"taxes\": \"21.00\",\n    \"orderTotalFinal\": \"445.99\"\n  },\n  {\n    \"restaurantName\": \"Nagarjuna - Since 1984\",\n    \"date\": \"Saturday, October 11, 2025 1:05 PM\",\n    \"type\": \"Food\",\n    \"orderId\": \"219136361600238\",\n    \"orderTotal\": \"800.00\",\n    \"discount\": \"80.00\",\n    \"packagingCharges\": \"40.00\",\n    \"platformFee\": \"14.99\",\n    \"deliveryFee\": \"0.00\",\n    \"taxes\": \"42.00\",\n    \"orderTotalFinal\": \"816.99\"\n  },\n  {\n    \"restaurantName\": \"Shivaji Military Hotel\",\n    \"date\": \"Saturday, October 11, 2025 7:18 PM\",\n    \"type\": \"Food\",\n    \"orderId\": \"219136361600349\",\n    \"orderTotal\": \"950.00\",\n    \"discount\": \"100.00\",\n    \"packagingCharges\": \"35.00\",\n    \"platformFee\": \"12.00\",\n    \"deliveryFee\": \"25.00\",\n    \"taxes\": \"45.00\",\n    \"orderTotalFinal\": \"967.00\"\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1200,
+        400
+      ],
+      "id": "2c1e5e0d-11d1-40c9-bbd7-7dfa5770f1df",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Take in the email body here {{ $json.html }} and extract the following values for the Swiggy Food order:\n\nrestaurantName: Restaurant Name or variations of it\ndate: based on when the email was received or mentioned in the email\ntype: Food ('Delivery' or 'delivery' and none of 'dineout' or 'instamart' in email subject), Dineout (if email subject mentions'Dineout') or Instamart (if email subject mentions'Instamart')\norderId: Order Id\norderTotal: Item Total\ndiscount: Discount\npackagingCharges: Packaging Charges\nplatformFee: Platform Fee\ndeliveryFee: Delivery Fee\ntaxes: Taxes\norderTotalFinal: Order Total Final\n\nOutput just the data in flat json without markdowns without any greeting or chit-chat",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1520,
+        -96
+      ],
+      "id": "a6fa242f-a9e6-44f1-9277-ca34049bef22",
+      "name": "AI Email Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -1328,
+        352
+      ],
+      "id": "d101efb8-d969-4c6a-ae46-61a06ec17720",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "ev6vDvMk04Dpj0vj",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1YB5ewnWBerLdMe_tPWQqY1HSxx9qqHTjGZGcJgRYrGw/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YB5ewnWBerLdMe_tPWQqY1HSxx9qqHTjGZGcJgRYrGw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Restaurant": "={{ $json.restaurantName }}\n",
+            "Date & Time": "={{ DateTime.fromFormat($('Get Whole Email').item.json.headers.received.match(/(Sun|Mon|Tue|Wed|Thu|Fri|Sat), \\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \\d{4} \\d{2}:\\d{2}:\\d{2} [+-]\\d{4}/)[0], 'EEE, dd MMM yyyy HH:mm:ss ZZZ').toFormat('EEEE, LLLL d, yyyy HH:mm') }}",
+            "Type": "={{ $json.type }}",
+            "Item Total": "={{ ($json.orderTotal + '').replace(/[^\\d.]/g, '') }}",
+            "Order Id": "={{ $json.orderId }}",
+            "Discount": "={{ ($json.discount + '').replace(/[^\\d.]/g, '') }}",
+            "Packaging Charges": "={{ ($json.packagingCharges + '').replace(/[^\\d.]/g, '') }}",
+            "Platform Fee": "={{ ($json.platformFee + '').replace(/[^\\d.]/g, '') }}",
+            "Delivery Fee": "={{ ($json.deliveryFee + '').replace(/[^\\d.]/g, '') }}",
+            "Taxes": "={{ ($json.taxes + '').replace(/[^\\d.]/g, '') }}",
+            "Order Total Final": "={{ ($json.orderTotalFinal + '').replace(/[^\\d.]/g, '') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Restaurant",
+              "displayName": "Restaurant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date & Time",
+              "displayName": "Date & Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Id",
+              "displayName": "Order Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item Total",
+              "displayName": "Item Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Discount",
+              "displayName": "Discount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Packaging Charges",
+              "displayName": "Packaging Charges",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Platform Fee",
+              "displayName": "Platform Fee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Delivery Fee",
+              "displayName": "Delivery Fee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Taxes",
+              "displayName": "Taxes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Total Final",
+              "displayName": "Order Total Final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -784,
+        -96
+      ],
+      "id": "8502766d-212b-4a7d-84ff-1a61ec5936ad",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lPrwxaxIYjfo4cAu",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "gpt-3.5-turbo"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1456,
+        400
+      ],
+      "id": "0270ec54-62ce-44e3-a939-592173996748",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "RjH01q4UdpVNJcqa",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-oss:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -1600,
+        336
+      ],
+      "id": "b7542ec4-86b9-4ebc-8cc6-07965f4e71a5",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "kyJoOVbyW7kfiGVO",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper to parse messy/escaped/embedded JSON output from AI\nfunction safeParse(input) {\n  // Try direct first\n  try {\n    return JSON.parse(input);\n  } catch {}\n  // Try to clean up if it's a stringified array/stringified object\n  try {\n    const fixed = input\n      .replace(/\\\\\"/g, '\"') // Unescape quotes\n      .replace(/\\\\n/g, '')  // Remove newlines\n      .replace(/\\\\t/g, '')  // Remove tabs\n      .replace(/\"\"/g, '\"'); // Remove redundant double quotes\n    return JSON.parse(fixed);\n  } catch {}\n  // Try extracting just the array portion\n  if (typeof input === 'string') {\n    const arrStart = input.indexOf('[');\n    const arrEnd = input.lastIndexOf(']');\n    if (arrStart > -1 && arrEnd > arrStart) {\n      try {\n        const justArray = input.substring(arrStart, arrEnd + 1)\n          .replace(/\\\\\"/g, '\"').replace(/\\\\n/g, '').replace(/\\\\t/g, '').replace(/\"\"/g, '\"');\n        return JSON.parse(justArray);\n      } catch {}\n    }\n  }\n  throw new Error(\"Failed to parse array from input: \" + input);\n}\n\n// Get all outputs from AI Email Parser in this run (usually one per item)\nlet allOrders = [];\nfor (const item of items) {\n  let raw = item.json.output || item.json.text || item.json.data || item.json;\n  if (Array.isArray(raw)) {\n    allOrders.push(...raw);\n  } else if (typeof raw === 'object') {\n    allOrders.push(raw);\n  } else if (typeof raw === 'string') {\n    const result = safeParse(raw);\n    if (Array.isArray(result)) {\n      allOrders.push(...result);\n    } else if (result) {\n      allOrders.push(result);\n    }\n  }\n}\n\n// Final safety filter: flatten and remove falsy\nallOrders = allOrders.flat().filter(Boolean);\n\n// Return each object as an item (required by Google Sheet Append node)\nreturn allOrders.map(entry => ({ json: entry }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        -96
+      ],
+      "id": "9d87502f-0174-490f-b3b4-f38091c2e587",
+      "name": "Clean JSON"
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 1,
+              "minute": 30
+            }
+          ]
+        }
+      },
+      "id": "8a901a51-b7ef-41e5-9349-822c35222ba4",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -2240,
+        -192
+      ],
+      "retryOnFail": true,
+      "maxTries": 2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Get MessageIDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Whole Email": {
+      "main": [
+        [
+          {
+            "node": "AI Email Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Get MessageIDs": {
+      "main": [
+        [
+          {
+            "node": "Get Whole Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        []
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "AI Email Parser": {
+      "main": [
+        [
+          {
+            "node": "Clean JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Email Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean JSON": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Get MessageIDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "m4nOmq18tuiageov"
+  },
+  "versionId": "cf30153b-3ea4-4f8c-a101-1174ee12c7fd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "de7af53d1fd674f87fce9ce003d7e943eb515ee668ad66f5ecf504579bf54cb8"
+  },
+  "id": "OyHYkOJgWSYzTZzA",
+  "tags": [
+    {
+      "createdAt": "2025-10-10T14:39:58.974Z",
+      "updatedAt": "2025-10-10T14:39:58.974Z",
+      "id": "Pv0po7IstVjvyCjh",
+      "name": "Swiggy Orders"
+    },
+    {
+      "createdAt": "2025-10-10T14:58:00.189Z",
+      "updatedAt": "2025-10-10T14:58:00.189Z",
+      "id": "VHGW1ZODYIUTvLx8",
+      "name": "Self-Hosted Automation"
+    },
+    {
+      "createdAt": "2025-10-10T14:39:58.950Z",
+      "updatedAt": "2025-10-10T14:39:58.950Z",
+      "id": "wyi2QCz6rOfoyrNo",
+      "name": "Email Automation"
+    }
+  ]
+}
